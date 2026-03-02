@@ -1,6 +1,6 @@
 {
   "name": "whatsapp-automator",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "main": "index.js",
   "type": "module",
   "files": [
@@ -8,9 +8,6 @@
     "README.md",
     "LICENSE"
   ],
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "keywords": [
     "whatsapp",
     "baileys",
@@ -20,9 +17,12 @@
   "author": "Umar I.",
   "license": "MIT",
   "description": "A simple, hobbyist-friendly WhatsApp automation library built on top of Baileys. Receive and respond to WhatsApp messages programmatically using a clean, event-driven API. Not officially affiliated with WhatsApp.",
+  "bugs": {
+    "url": "https://github.com/umr13/whatsapp-automator/issues"
+  },
+  "homepage": "https://github.com/umr13/whatsapp-automator#readme",
   "dependencies": {
     "@whiskeysockets/baileys": "^7.0.0-rc.9",
-    "dotenv": "^17.3.1",
     "pino": "^10.3.1",
     "qrcode-terminal": "^0.12.0"
   }

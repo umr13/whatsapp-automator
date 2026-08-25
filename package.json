@@ -1,8 +1,12 @@
 {
   "name": "whatsapp-automator",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "main": "index.js",
   "type": "module",
+  "scripts": {
+    "check": "node --check index.js",
+    "test": "node --test"
+  },
   "files": [
     "index.js",
     "README.md",

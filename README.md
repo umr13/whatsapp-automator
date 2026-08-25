@@ -16,6 +16,7 @@ A simple, hobbyist-friendly WhatsApp automation library built on top of [Baileys
   - [Constructor Options](#constructor-options)
   - [The `onMessage` Callback](#the-onmessage-callback)
   - [`bot.start()`](#botstart)
+  - [`bot.stop()`](#botstop)
 - [Examples](#examples)
   - [Basic Echo Bot](#basic-echo-bot)
   - [Restricted Numbers (Allowlist)](#restricted-numbers-allowlist)
@@ -38,7 +39,7 @@ A simple, hobbyist-friendly WhatsApp automation library built on top of [Baileys
 
 - 📱 **QR code authentication** — scan once, sessions are persisted automatically
 - 🔒 **Allowlist filtering** — restrict the bot to specific phone numbers
-- ⏱️ **Built-in rate limiting** — 1 message per second per sender, with automatic cleanup
+- ⏱️ **Queued rate limiting** — message bursts are processed in order instead of immediately dropped
 - 🔁 **Auto-reconnect with exponential backoff** — up to 10 attempts, capped at 5 minutes
 - 📨 **Group & DM support** — differentiate between group and direct messages
 - 🧩 **Minimal, composable API** — bring your own message handler logic
@@ -103,6 +104,8 @@ new WhatsAppBot(options)
 |---|---|---|---|
 | `allowedNumbers` | `string[]` | `[]` | Phone numbers (without `+` or country code prefix formatting — just digits, e.g. `'929876543210'`) allowed to interact with the bot. An **empty array allows everyone**. |
 | `onMessage` | `async Function` | no-op | Callback invoked for every incoming message that passes the allowlist and rate limiter. |
+| `rateLimitMs` | `number` | `200` | Minimum delay in milliseconds between messages from the same sender. Set to `0` to disable rate limiting. |
+| `maxQueueSize` | `number` | `50` | Maximum number of messages waiting per sender. Set to `0` to allow processing only the current message, with no waiting backlog. |
 
 ---
 
@@ -131,7 +134,17 @@ onMessage: async ({ sock, messageContent, senderId, isGroup }) => {
 await bot.start()
 ```
 
-Initializes the WhatsApp connection. Handles QR code display, credential saving, and auto-reconnection internally. Returns the underlying Baileys `sock` object if you need direct access to it.
+Initializes the WhatsApp connection. Handles QR code display, credential saving, and auto-reconnection internally. Returns the underlying Baileys `sock` object if you need direct access to it. Repeated calls return the existing socket instead of opening competing connections.
+
+---
+
+### `bot.stop()`
+
+```js
+await bot.stop()
+```
+
+Stops the socket, cancels pending reconnects, clears queued messages and timers, and prevents automatic reconnection. The same bot instance can be started again later with `bot.start()`.
 
 ---
 
@@ -291,7 +304,7 @@ Scan this QR code with WhatsApp:
 2. Go to **Settings → Linked Devices → Link a Device**
 3. Scan the QR code
 
-Your credentials are saved in the `auth_info/` folder. **Do not commit this folder to version control** — add it to your `.gitignore`:
+Your credentials are saved in the `auth_info/` folder. **Do not commit this folder to version control.** This repository's `.gitignore` already excludes the following paths; add the same entries to applications that use this package:
 
 ```
 auth_info/
@@ -320,13 +333,29 @@ After 10 failed attempts, the bot stops trying and logs an error. If another ins
 
 ## Rate Limiting
 
-To prevent flooding, the bot enforces a **1 message per second** limit per sender. Messages arriving faster than this are silently dropped and logged:
+To prevent flooding without losing normal message bursts, each sender has an independent queue. Messages are processed in arrival order with a **200 ms minimum interval** by default. Unauthorized messages, unsupported message types, and messages sent by the bot itself are filtered before entering the queue.
+
+Up to 50 messages can wait per sender. Only messages beyond that safety cap are dropped and logged:
 
 ```
-[WhatsAppBot] Rate limited message from: 929876543210
+[WhatsAppBot] Message queue full for: 929876543210
 ```
 
 The rate limit map is automatically cleaned up every 60 seconds to prevent memory leaks.
+
+You can adjust the cooldown or disable it when creating the bot:
+
+```js
+const bot = new WhatsAppBot({
+    rateLimitMs: 100, // 100 ms between messages from the same sender
+    maxQueueSize: 100,
+    onMessage: async ({ messageContent }) => {
+        // ...
+    }
+});
+
+// Use rateLimitMs: 0 to remove the delay. Per-sender ordering is still preserved.
+```
 
 ---
 
